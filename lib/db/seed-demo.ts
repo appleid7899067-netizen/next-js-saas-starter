@@ -30,16 +30,28 @@ export async function seedDemoAccount(
 
   const passwordHash = await hash(DEMO_PASSWORD, 10);
 
-  const [user] = await db
-    .insert(users)
-    .values({ name: 'Demo User', email: DEMO_EMAIL, passwordHash, role: 'owner' })
-    .returning();
+  try {
+    const [user] = await db
+      .insert(users)
+      .values({ name: 'Demo User', email: DEMO_EMAIL, passwordHash, role: 'owner' })
+      .returning();
 
-  const [team] = await db.insert(teams).values({ name: 'Demo Team' }).returning();
+    const [team] = await db.insert(teams).values({ name: 'Demo Team' }).returning();
 
-  await db.insert(teamMembers).values({ userId: user.id, teamId: team.id, role: 'owner' });
-  await db.insert(activityLogs).values({ teamId: team.id, userId: user.id, action: 'SIGN_UP' });
+    await db.insert(teamMembers).values({ userId: user.id, teamId: team.id, role: 'owner' });
+    await db.insert(activityLogs).values({ teamId: team.id, userId: user.id, action: 'SIGN_UP' });
 
-  log(`seeded demo account ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
-  return true;
+    log(`seeded demo account ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+    return true;
+  } catch (error) {
+    // Next.js dev can evaluate the database module in more than one worker, so
+    // a concurrent seed can win the race. The unique index on users.email makes
+    // that a no-op instead of a crash.
+    log(
+      `demo seed skipped (${
+        error instanceof Error ? error.message : String(error)
+      }) — another worker likely seeded it first`
+    );
+    return false;
+  }
 }

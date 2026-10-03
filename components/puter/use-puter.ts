@@ -16,6 +16,15 @@ import {
 
 export type PuterStatus = 'idle' | 'loading' | 'ready' | 'error';
 
+export type PuterAccount = {
+  userId: number;
+  teamId: number;
+  name: string | null;
+  email: string;
+  created: boolean;
+  linked: boolean;
+};
+
 export type UsePuterResult = {
   status: PuterStatus;
   error: string | null;
@@ -33,6 +42,9 @@ export type UsePuterResult = {
   signInPending: boolean;
   refreshModels: () => Promise<void>;
   isFallbackModels: boolean;
+  /** The local account that the Puter login created (or matched). */
+  account: PuterAccount | null;
+  accountWarning: string | null;
 };
 
 /**
@@ -54,6 +66,8 @@ export function usePuter(initialUsername: string | null): UsePuterResult {
   const [modelsSource, setModelsSource] = useState<'puter' | 'fallback' | 'loading'>('loading');
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   const [signInPending, setSignInPending] = useState(false);
+  const [account, setAccount] = useState<PuterAccount | null>(null);
+  const [accountWarning, setAccountWarning] = useState<string | null>(null);
   const bootstrapped = useRef(false);
 
   const refreshModels = useCallback(async (instance?: PuterSdk) => {
@@ -97,7 +111,9 @@ export function usePuter(initialUsername: string | null): UsePuterResult {
         setMonthlyUsage(usage ?? null);
 
         if (puterUser?.username) {
-          await fetch('/api/puter/session', {
+          // Creates/links the local account + session cookie and tells the UI
+          // which account this Puter login maps to.
+          const response = await fetch('/api/puter/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -105,7 +121,16 @@ export function usePuter(initialUsername: string | null): UsePuterResult {
               uuid: String(puterUser.uuid ?? puterUser.username),
               email: puterUser.email ?? null
             })
-          }).catch(() => undefined);
+          }).catch(() => null);
+
+          if (response?.ok) {
+            const payload = (await response.json().catch(() => null)) as
+              | { account?: PuterAccount | null; warning?: string | null }
+              | null;
+
+            if (payload?.account) setAccount(payload.account);
+            setAccountWarning(payload?.warning ?? null);
+          }
         }
       } catch (identityError) {
         console.warn('[puter] could not read the Puter account', identityError);
@@ -207,6 +232,8 @@ export function usePuter(initialUsername: string | null): UsePuterResult {
       setUser(null);
       setProfilePicture(null);
       setMonthlyUsage(null);
+      setAccount(null);
+      setAccountWarning(null);
       router.refresh();
     }
   }, [router, sdk]);
@@ -228,9 +255,13 @@ export function usePuter(initialUsername: string | null): UsePuterResult {
       signOut,
       signInPending,
       refreshModels: () => refreshModels(),
-      isFallbackModels: modelsSource === 'fallback'
+      isFallbackModels: modelsSource === 'fallback',
+      account,
+      accountWarning
     }),
     [
+      account,
+      accountWarning,
       error,
       models,
       modelsSource,

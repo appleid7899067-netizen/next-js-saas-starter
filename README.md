@@ -24,7 +24,8 @@ combines three things:
 
 | ส่วน | ทำอะไร | ใช้ API อะไร |
 | --- | --- | --- |
-| **ล็อกอินโมเดล** | ล็อกอินด้วยบัญชี Puter (ป๊อปอัป) แล้วเลือกโมเดลจาก 500+ ตัว และแชทแบบสตรีมทีละ chunk | `puter.auth.*`, `puter.ai.listModels()`, `puter.ai.chat(..., { stream: true })` |
+| **ล็อกอินเดียวจบ** | คลิก “ล็อกอินด้วย Puter” ครั้งเดียว → ระบบสร้าง/ผูกบัญชีผู้ใช้ + ทีม + คุกกี้เซสชันของแอปให้อัตโนมัติ (ไม่ต้องสมัคร ไม่ต้องตั้งรหัสผ่าน) แล้วเข้าแดชบอร์ดได้เลย | `POST /api/puter/session` → `lib/db/puter-account.ts` |
+| **ล็อกอินโมเดล** | เลือกโมเดลจาก 500+ ตัว และแชทแบบสตรีมทีละ chunk | `puter.auth.*`, `puter.ai.listModels()`, `puter.ai.chat(..., { stream: true })` |
 | **แซนบ็อก** | เชลล์จริงต่อผู้ใช้ 1 เซสชัน ในเวิร์กสเปซแยก (`bash` บน PTY) + เปิด/อ่าน/เขียน/ลบไฟล์ผ่าน UI | `lib/sandbox/session.ts` + `/api/sandbox/*` |
 | **เทอร์มินอลสตรีม** | เอาต์พุตสตรีมกลับมาที่เบราว์เซอร์แบบเรียลไทม์ (SSE, มี polling fallback) พร้อม ANSI colour | `GET /api/sandbox/stream` |
 
@@ -32,8 +33,18 @@ combines three things:
 
 - **ไม่ต้องใช้ API key ของค่ายโมเดลเลย** — ใช้โมเดล User-Pays ของ Puter
   (ค่าใช้งานคิดกับบัญชี Puter ของผู้ใช้ ไม่ใช่เจ้าของแอป)
+- **Puter เป็นล็อกอินหลัก**: ปุ่มนี้อยู่บนหน้า `/sign-in`, `/sign-up` และหน้าแรก
+  โดยอีเมล/รหัสผ่านแบบเดิมยังใช้ได้เป็นทางเลือก — บัญชีที่มาจาก Puter จะผูกกับ
+  `users.puter_uuid` (1 บัญชี Puter = 1 บัญชีในแอป) และถ้าอีเมลตรงกับบัญชีเดิม
+  ระบบจะผูกให้แทนการสร้างซ้ำ
+- ออกจากระบบที่ปุ่ม “ออกจากระบบ Puter” (หรือ Sign out ในแดชบอร์ด) จะล้างทั้ง
+  คุกกี้ `puter_session` และคุกกี้เซสชันของแอปให้พร้อมกัน
 - ตัวตน Puter ถูกเก็บเป็น **คุกกี้ที่เซ็นด้วย `AUTH_SECRET`** (`puter_session`, httpOnly)
   ผ่าน `POST /api/puter/session` — ฝั่งเซิร์ฟเวอร์ไม่เคยเห็นรหัสผ่าน
+- `GET /api/puter/session` คืน `{ connected, puter, account }` โดย `account` คือบัญชีในแอป
+  (`userId`, `teamId`, `created`, `linked`) — ใช้ตรวจว่าล็อกอิน Puter ผูกกับบัญชีไหนอยู่
+- คอลัมน์ `users.puter_uuid` / `users.puter_username` ถูกเพิ่มผ่าน migration
+  `0001_flowery_oracle.sql` ซึ่งจะถูกรันอัตโนมัติทั้งโหมด embedded และ Postgres
 - ปุ่ม **Run ในแซนบ็อก** ในบล็อกโค้ดของคำตอบ AI จะส่งคำสั่งไปที่เทอร์มินอลจริง
   และ **Save to Puter** จะเขียนบทสนทนา (และ log ของเทอร์มินอล) ลง Puter Drive
   ในโฟลเดอร์ AppData ของแอป (`puter.fs.write` → Puter-side sandbox ต่อแอป)

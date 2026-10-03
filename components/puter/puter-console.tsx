@@ -225,6 +225,34 @@ export function PuterConsole({ initialUsername }: { initialUsername: string | nu
                     </p>
                   </div>
 
+                  {puter.account ? (
+                    <div className="rounded-lg border border-gray-200 px-3 py-2 text-[11px] text-gray-600">
+                      <p className="mb-1 font-medium text-gray-700">บัญชีในแอปนี้</p>
+                      <p className="font-mono">{puter.account.email}</p>
+                      <p className="mt-0.5">
+                        ทีม #{puter.account.teamId}
+                        {puter.account.created
+                          ? ' · สร้างบัญชี+ทีมให้อัตโนมัติจากการล็อกอิน Puter'
+                          : puter.account.linked
+                            ? ' · ผูกกับบัญชีเดิมที่มีอีเมลนี้'
+                            : ''}
+                      </p>
+                      <p className="mt-1">
+                        เข้าแดชบอร์ดได้เลยที่{' '}
+                        <a href="/dashboard" className="text-orange-600 hover:underline">
+                          /dashboard
+                        </a>{' '}
+                        — ไม่ต้องตั้งรหัสผ่าน
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {puter.accountWarning ? (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                      {puter.accountWarning}
+                    </p>
+                  ) : null}
+
                   {usageEntries ? (
                     <div className="rounded-lg border border-gray-200 px-3 py-2">
                       <p className="mb-1 text-[11px] font-medium text-gray-700">
@@ -251,7 +279,8 @@ export function PuterConsole({ initialUsername }: { initialUsername: string | nu
                 <div className="space-y-3">
                   <p className="text-xs text-gray-600">
                     ยังไม่ได้ล็อกอิน Puter — กดปุ่มด้านบนเพื่อเปิดหน้าต่างล็อกอิน
-                    (ป๊อปอัปต้องมาจากการคลิกของผู้ใช้)
+                    (ป๊อปอัปต้องมาจากการคลิกของผู้ใช้) ล็อกอินครั้งเดียวจบ:
+                    ระบบจะสร้างบัญชี + ทีมในแอปให้ และพาเข้าแดชบอร์ดได้ทันที
                   </p>
                   <ul className="space-y-1.5 text-[11px] text-gray-500">
                     <li className="flex items-start gap-1.5">

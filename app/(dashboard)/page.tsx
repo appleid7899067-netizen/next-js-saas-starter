@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, CreditCard, Database } from 'lucide-react';
 import { Terminal } from './terminal';
@@ -19,6 +20,21 @@ export default function HomePage() {
                 essential integrations.
               </p>
               <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Link href="/puter">
+                    <Button size="lg" className="text-lg rounded-full">
+                      เปิด Puter Console
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <span className="text-xs text-gray-500">
+                    ล็อกอินครั้งเดียวด้วย Puter — ได้บัญชี ทีม และเทอร์มินอลแซนบ็อก
+                    ไม่ต้องใช้ API key
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
                 <a
                   href="https://vercel.com/templates/next.js/next-js-saas-starter"
                   target="_blank"

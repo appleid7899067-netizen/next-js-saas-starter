@@ -14,6 +14,10 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   role: varchar('role', { length: 20 }).notNull().default('member'),
+  // Puter account linkage: accounts created by signing in with Puter carry the
+  // Puter uuid/username, so one Puter login maps to exactly one local account.
+  puterUuid: varchar('puter_uuid', { length: 128 }).unique(),
+  puterUsername: varchar('puter_username', { length: 128 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
