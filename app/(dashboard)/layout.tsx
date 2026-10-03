@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { use, useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
-import { CircleIcon, Home, LogOut } from 'lucide-react';
+import { CircleIcon, Home, LogOut, TerminalSquare } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,6 +87,21 @@ function Header() {
           <span className="ml-2 text-xl font-semibold text-gray-900">ACME</span>
         </Link>
         <div className="flex items-center space-x-4">
+          <nav className="hidden items-center gap-5 sm:flex">
+            <Link
+              href="/pricing"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/puter"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              <TerminalSquare className="h-4 w-4 text-orange-500" />
+              Puter Console
+            </Link>
+          </nav>
           <Suspense fallback={<div className="h-9" />}>
             <UserMenu />
           </Suspense>

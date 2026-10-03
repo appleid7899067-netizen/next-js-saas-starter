@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { CircleIcon, Loader2 } from 'lucide-react';
 import { signIn, signUp } from './actions';
 import { ActionState } from '@/lib/auth/middleware';
+import { PuterSignInButton } from '@/components/puter/puter-sign-in-button';
 
 export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
   const searchParams = useSearchParams();
@@ -31,9 +32,32 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
             ? 'Sign in to your account'
             : 'Create your account'}
         </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          คลิกเดียวจบด้วยบัญชี Puter — ระบบสร้างบัญชีและทีมให้อัตโนมัติ
+          ไม่ต้องตั้งรหัสผ่าน
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        {/* Puter is the primary, one-click path; email/password stays as a fallback. */}
+        <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+          <PuterSignInButton
+            redirectTo={redirect === 'checkout' ? null : '/dashboard'}
+            label={mode === 'signin' ? 'ล็อกอินด้วย Puter' : 'สมัครด้วย Puter (คลิกเดียว)'}
+            size="lg"
+          />
+          <p className="mt-2 text-[11px] text-orange-900/80">
+            ใช้โมเดล AI 500+ ตัวแบบไม่ต้องมี API key (ค่าใช้งานคิดกับบัญชี Puter ของคุณ)
+            พร้อมแซนบ็อกเทอร์มินอลที่ /puter
+          </p>
+        </div>
+
+        <div className="my-6 flex items-center gap-3">
+          <span className="h-px flex-1 bg-gray-300" />
+          <span className="text-xs text-gray-500">หรือใช้อีเมล / รหัสผ่าน</span>
+          <span className="h-px flex-1 bg-gray-300" />
+        </div>
+
         <form className="space-y-6" action={formAction}>
           <input type="hidden" name="redirect" value={redirect || ''} />
           <input type="hidden" name="priceId" value={priceId || ''} />

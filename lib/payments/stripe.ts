@@ -7,9 +7,51 @@ import {
   updateTeamSubscription
 } from '@/lib/db/queries';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil'
-});
+export const isStripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+
+if (!isStripeConfigured) {
+  console.warn(
+    '[stripe] STRIPE_SECRET_KEY is not set — the pricing page renders placeholder plans and checkout is disabled.'
+  );
+}
+
+/**
+ * API version pinning.
+ *
+ * Do NOT hardcode the version literal here: the stripe SDK types only accept
+ * the newest version string, so a hardcoded value makes `next build` fail as
+ * soon as a newer release is installed, e.g.
+ *   Type '"2025-04-30.basil"' is not assignable to type '"2025-08-27.basil"'.
+ *
+ * By default we let the SDK use its own bundled default (Stripe's recommended
+ * behaviour, and the value that stays in sync with the installed version). Pin
+ * a specific version with STRIPE_API_VERSION when you really need one.
+ */
+const stripeApiVersion = process.env.STRIPE_API_VERSION as
+  | Stripe.LatestApiVersion
+  | undefined;
+
+/**
+ * Public base URL used for Stripe redirects. Falls back to the platform URL
+ * (Render injects RENDER_EXTERNAL_URL) and finally to localhost, so checkout
+ * keeps working when BASE_URL was not set explicitly.
+ */
+export function baseUrl() {
+  const configured = process.env.BASE_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, '');
+
+  const platform = process.env.RENDER_EXTERNAL_URL?.trim();
+  if (platform) return platform.replace(/\/+$/, '');
+
+  return 'http://localhost:3000';
+}
+
+export const stripe = new Stripe(
+  process.env.STRIPE_SECRET_KEY ?? 'sk_test_not_configured',
+  {
+    apiVersion: stripeApiVersion
+  }
+);
 
 export async function createCheckoutSession({
   team,
@@ -18,6 +60,12 @@ export async function createCheckoutSession({
   team: Team | null;
   priceId: string;
 }) {
+  if (!isStripeConfigured) {
+    throw new Error(
+      'Stripe is not configured: set STRIPE_SECRET_KEY to enable checkout.'
+    );
+  }
+
   const user = await getUser();
 
   if (!team || !user) {
@@ -33,8 +81,8 @@ export async function createCheckoutSession({
       }
     ],
     mode: 'subscription',
-    success_url: `${process.env.BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.BASE_URL}/pricing`,
+    success_url: `${baseUrl()}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl()}/pricing`,
     customer: team.stripeCustomerId || undefined,
     client_reference_id: user.id.toString(),
     allow_promotion_codes: true,
@@ -109,7 +157,7 @@ export async function createCustomerPortalSession(team: Team) {
 
   return stripe.billingPortal.sessions.create({
     customer: team.stripeCustomerId,
-    return_url: `${process.env.BASE_URL}/dashboard`,
+    return_url: `${baseUrl()}/dashboard`,
     configuration: configuration.id
   });
 }
@@ -147,6 +195,10 @@ export async function handleSubscriptionChange(
 }
 
 export async function getStripePrices() {
+  if (!isStripeConfigured) {
+    return [];
+  }
+
   const prices = await stripe.prices.list({
     expand: ['data.product'],
     active: true,
@@ -165,6 +217,10 @@ export async function getStripePrices() {
 }
 
 export async function getStripeProducts() {
+  if (!isStripeConfigured) {
+    return [];
+  }
+
   const products = await stripe.products.list({
     active: true,
     expand: ['data.default_price']

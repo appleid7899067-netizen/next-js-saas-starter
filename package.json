@@ -3,7 +3,9 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:standalone": "BUILD_STANDALONE=1 next build && node scripts/prepare-standalone.mjs",
     "start": "next start",
+    "start:standalone": "node .next/standalone/server.js",
     "db:setup": "npx tsx lib/db/setup.ts",
     "db:seed": "npx tsx lib/db/seed.ts",
     "db:generate": "drizzle-kit generate",
@@ -11,6 +13,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/postcss": "4.1.7",
     "@types/node": "^22.15.18",
     "@types/react": "19.1.4",
@@ -31,7 +34,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "server-only": "^0.0.1",
-    "stripe": "^18.1.0",
+    "stripe": "^18.5.0",
     "swr": "^2.3.3",
     "tailwind-merge": "^3.3.0",
     "tailwindcss": "4.1.7",

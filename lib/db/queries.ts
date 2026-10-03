@@ -4,7 +4,34 @@ import { activityLogs, teamMembers, teams, users } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
+/**
+ * React/Next use thrown sentinels to interrupt rendering (redirect(),
+ * notFound(), PPR "postpone", …). They must never be swallowed by a
+ * try/catch, otherwise prerendering breaks with confusing errors.
+ */
+function isFrameworkBailout(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+
+  const record = error as Record<string, unknown>;
+  if ('$$typeof' in record) return true;
+  if (typeof record.digest === 'string' && record.digest.startsWith('NEXT_')) return true;
+
+  return false;
+}
+
 export async function getUser() {
+  // The database may be unreachable (no POSTGRES_URL, server still booting…).
+  // Reads on the hot path degrade to "not signed in" instead of crashing pages.
+  try {
+    return await readUserFromSession();
+  } catch (error) {
+    if (isFrameworkBailout(error)) throw error;
+    console.error('[db] getUser failed:', error);
+    return null;
+  }
+}
+
+async function readUserFromSession() {
   const sessionCookie = (await cookies()).get('session');
   if (!sessionCookie || !sessionCookie.value) {
     return null;
@@ -105,8 +132,18 @@ export async function getTeamForUser() {
     return null;
   }
 
+  try {
+    return await readTeamForUser(user.id);
+  } catch (error) {
+    if (isFrameworkBailout(error)) throw error;
+    console.error('[db] getTeamForUser failed:', error);
+    return null;
+  }
+}
+
+async function readTeamForUser(userId: number) {
   const result = await db.query.teamMembers.findFirst({
-    where: eq(teamMembers.userId, user.id),
+    where: eq(teamMembers.userId, userId),
     with: {
       team: {
         with: {
