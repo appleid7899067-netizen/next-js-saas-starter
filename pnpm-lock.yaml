@@ -72,8 +72,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       stripe:
-        specifier: ^18.1.0
-        version: 18.1.0(@types/node@22.15.18)
+        specifier: ^18.5.0
+        version: 18.5.0(@types/node@22.15.18)
       swr:
         specifier: ^2.3.3
         version: 2.3.3(react@19.1.0)
@@ -1944,8 +1944,8 @@ packages:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
 
-  stripe@18.1.0:
-    resolution: {integrity: sha512-MLDiniPTHqcfIT3anyBPmOEcaiDhYa7/jRaNypQ3Rt2SJnayQZBvVbFghIziUCZdltGAndm/ZxVOSw6uuSCDig==}
+  stripe@18.5.0:
+    resolution: {integrity: sha512-Hp+wFiEQtCB0LlNgcFh5uVyKznpDjzyUZ+CNVEf+I3fhlYvh7rZruIg+jOwzJRCpy0ZTPMjlzm7J2/M2N6d+DA==}
     engines: {node: '>=12.*'}
     peerDependencies:
       '@types/node': '>=12.x.x'
@@ -3728,7 +3728,7 @@ snapshots:
 
   source-map@0.6.1: {}
 
-  stripe@18.1.0(@types/node@22.15.18):
+  stripe@18.5.0(@types/node@22.15.18):
     dependencies:
       qs: 6.14.0
     optionalDependencies:

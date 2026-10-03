@@ -1,6 +1,15 @@
 import type { NextConfig } from 'next';
 
+/**
+ * `BUILD_STANDALONE=1 pnpm build` (see `pnpm build:standalone`) additionally
+ * emits the self-contained `.next/standalone` output used by the Render
+ * blueprint. Plain `pnpm build` keeps the default output that `pnpm start`
+ * and Vercel expect.
+ */
+const standaloneBuild = process.env.BUILD_STANDALONE === '1';
+
 const nextConfig: NextConfig = {
+  ...(standaloneBuild ? { output: 'standalone' as const } : {}),
   experimental: {
     ppr: true,
     clientSegmentCache: true

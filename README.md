@@ -142,6 +142,40 @@ When you're ready to deploy your SaaS application to production, follow these st
 2. Connect your repository to [Vercel](https://vercel.com/) and deploy it.
 3. Follow the Vercel deployment process, which will guide you through setting up your project.
 
+### Deploy to Render
+
+[`render.yaml`](render.yaml) เป็น Blueprint พร้อมใช้ (web service + managed Postgres):
+
+1. Push โค้ดขึ้น GitHub แล้วใน Render เลือก **New → Blueprint** → เลือก repository นี้ → **Apply**
+   (ถ้าต้องการ deploy จาก branch ที่กำลังทำอยู่ ให้เลือก branch นั้นตอนสร้าง service)
+2. Render build ด้วย `pnpm install --frozen-lockfile && pnpm build:standalone`
+   แล้ว start ด้วย `node .next/standalone/server.js`
+   (`scripts/prepare-standalone.mjs` จะคัดลอก migration ไปไว้ข้าง `server.js` ให้เอง)
+3. ตั้ง `BASE_URL` เป็น `https://<service>.onrender.com` (ใช้กับ redirect ของ Stripe)
+4. เข้าใช้งานครั้งแรก: สมัครที่ `/sign-up` — หรือตั้ง `SEED_DEMO_ACCOUNT=1`
+   เพื่อให้สร้างบัญชี `test@test.com` / `admin123` ให้อัตโนมัติตอนบูต
+
+ทำแบบ manual (ไม่ใช้ Blueprint) ก็ได้: สร้าง **Web Service** แล้วตั้งค่า
+
+| Setting | Value |
+| --- | --- |
+| Build Command | `pnpm install --frozen-lockfile && pnpm build:standalone` |
+| Start Command | `node .next/standalone/server.js` |
+| Health Check Path | `/` |
+| Env vars | `POSTGRES_URL`, `AUTH_SECRET`, `BASE_URL` (+ `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` ถ้าใช้ Stripe) |
+
+หมายเหตุสำหรับการ deploy:
+
+- **Migration รันอัตโนมัติตอนบูต** (`lib/db/drizzle.ts` + `lib/db/migrate.ts`) จึงไม่ต้องสั่ง
+  `pnpm db:migrate` เอง — ถ้าหาโฟลเดอร์ migration ไม่เจอ ระบบจะข้ามและ log คำเตือนไว้
+  (ค้นหาจาก `MIGRATIONS_DIR`, `lib/db/migrations` ของโปรเจกต์ และข้าง `server.js`)
+- ถ้าไม่ตั้ง `POSTGRES_URL` แอปจะใช้ embedded PGlite (`.pglite/`) — ข้อมูลจะหายเมื่อ redeploy
+  บนแพลตฟอร์มที่ดิสก์เป็น ephemeral ดังนั้นบน Render ให้ใช้ managed Postgres และใช้
+  connection string แบบ **internal** (ไม่ต้องใช้ SSL); ถ้าใช้ external URL ให้เติม `?sslmode=require`
+- ตั้ง **`SANDBOX_DISABLED=1`** ถ้าไม่ต้องการให้ผู้ใช้รันคำสั่งเชลล์บนเซิร์ฟเวอร์ที่ deploy จริง
+  เพราะเทอร์มินอลแซนบ็อกรันอยู่บนคอนเทนเนอร์เดียวกับเว็บแอป
+- Vercel/ที่อื่นยังใช้ได้เหมือนเดิมด้วย `pnpm build` + `pnpm start` (ไม่ต้องใช้ standalone)
+
 ### Add environment variables
 
 In your Vercel project settings (or during deployment), add all the necessary environment variables. Make sure to update the values for the production environment, including:

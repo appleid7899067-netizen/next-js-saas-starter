@@ -1,0 +1,46 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Deploy: push this branch, then in Render open
+#   New → Blueprint → select this repository → Apply
+#
+# The web service builds the Next.js standalone output and starts it with
+# `node .next/standalone/server.js`. scripts/prepare-standalone.mjs copies the
+# Drizzle migrations next to server.js, so the first boot creates the schema in
+# the managed Postgres automatically (see lib/db/drizzle.ts + lib/db/migrate.ts).
+services:
+  - type: web
+    name: next-js-saas-starter
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm build:standalone
+    startCommand: node .next/standalone/server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Signs the session cookies — Render generates and keeps this value.
+      - key: AUTH_SECRET
+        generateValue: true
+      # Managed Postgres created below; the app migrates it on boot.
+      - key: POSTGRES_URL
+        fromDatabase:
+          name: saas-starter-db
+          property: connectionString
+      # Public URL of the service, used for Stripe redirects. Set it to
+      # https://<your-service>.onrender.com after the first deploy.
+      - key: BASE_URL
+        sync: false
+      # Optional — leave empty to run the pricing page in placeholder mode.
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      # Set to 1 to disable the sandbox terminal on a public deployment.
+      - key: SANDBOX_DISABLED
+        value: 0
+
+databases:
+  - name: saas-starter-db
+    plan: free
+    databaseName: saas_starter
+    user: saas_starter
