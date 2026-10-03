@@ -12,9 +12,42 @@ This is a starter template for building a SaaS application using **Next.js** wit
 - Basic RBAC with Owner and Member roles
 - Subscription management with Stripe Customer Portal
 - Email/password authentication with JWTs stored to cookies
+- **Puter Console** (`/puter`): Puter login for 500+ AI models (User-Pays, no API keys), a per-user command sandbox and a live-streaming terminal
 - Global middleware to protect logged-in routes
 - Local middleware to protect Server Actions or validate Zod schemas
 - Activity logging system for any user events
+
+## Puter Console (โมเดล AI + แซนบ็อก + เทอร์มินอลสตรีม)
+
+The dashboard ships with a **Puter Console** at [`/puter`](app/(dashboard)/puter/page.tsx) that
+combines three things:
+
+| ส่วน | ทำอะไร | ใช้ API อะไร |
+| --- | --- | --- |
+| **ล็อกอินโมเดล** | ล็อกอินด้วยบัญชี Puter (ป๊อปอัป) แล้วเลือกโมเดลจาก 500+ ตัว และแชทแบบสตรีมทีละ chunk | `puter.auth.*`, `puter.ai.listModels()`, `puter.ai.chat(..., { stream: true })` |
+| **แซนบ็อก** | เชลล์จริงต่อผู้ใช้ 1 เซสชัน ในเวิร์กสเปซแยก (`bash` บน PTY) + เปิด/อ่าน/เขียน/ลบไฟล์ผ่าน UI | `lib/sandbox/session.ts` + `/api/sandbox/*` |
+| **เทอร์มินอลสตรีม** | เอาต์พุตสตรีมกลับมาที่เบราว์เซอร์แบบเรียลไทม์ (SSE, มี polling fallback) พร้อม ANSI colour | `GET /api/sandbox/stream` |
+
+จุดสำคัญ:
+
+- **ไม่ต้องใช้ API key ของค่ายโมเดลเลย** — ใช้โมเดล User-Pays ของ Puter
+  (ค่าใช้งานคิดกับบัญชี Puter ของผู้ใช้ ไม่ใช่เจ้าของแอป)
+- ตัวตน Puter ถูกเก็บเป็น **คุกกี้ที่เซ็นด้วย `AUTH_SECRET`** (`puter_session`, httpOnly)
+  ผ่าน `POST /api/puter/session` — ฝั่งเซิร์ฟเวอร์ไม่เคยเห็นรหัสผ่าน
+- ปุ่ม **Run ในแซนบ็อก** ในบล็อกโค้ดของคำตอบ AI จะส่งคำสั่งไปที่เทอร์มินอลจริง
+  และ **Save to Puter** จะเขียนบทสนทนา (และ log ของเทอร์มินอล) ลง Puter Drive
+  ในโฟลเดอร์ AppData ของแอป (`puter.fs.write` → Puter-side sandbox ต่อแอป)
+- เทอร์มินอลใช้เวลาว่างเกิน 30 นาทีจะถูกปิดอัตโนมัติ (สูงสุด 12 เซสชันต่อโปรเซส)
+
+ตัวแปรสภาพแวดล้อมที่เกี่ยวข้อง (ทั้งหมดมีค่าเริ่มต้น):
+
+```bash
+SANDBOX_ROOT=.sandbox        # ที่เก็บเวิร์กสเปซของเทอร์มินอลแซนบ็อก
+SANDBOX_DISABLED=0           # ตั้งเป็น 1 เพื่อปิดฟีเจอร์เทอร์มินอลทั้งหน้า
+```
+
+> ⚠️ เทอร์มินอลนี้รันคำสั่งบนคอนเทนเนอร์เดียวกับแอป (เดโม ไม่ได้ทำ hardening แบบ production)
+> เหมาะกับการทดลอง — อย่าเปิดให้ผู้ใช้ไม่รู้จักในโปรดักชันโดยไม่เพิ่ม sandboxing จริงจัง
 
 ## Tech Stack
 
@@ -40,7 +73,7 @@ pnpm install
 stripe login
 ```
 
-Use the included setup script to create your `.env` file:
+Use the included setup script to create your `.env` file (optional — see below):
 
 ```bash
 pnpm db:setup
@@ -52,6 +85,17 @@ Run the database migrations and seed the database with a default user and team:
 pnpm db:migrate
 pnpm db:seed
 ```
+
+### Running without Postgres / Stripe (zero-config mode)
+
+ถ้ายังไม่มี `POSTGRES_URL` แอปจะสตาร์ทด้วย **embedded Postgres (PGlite)** ที่เก็บในโฟลเดอร์
+`.pglite/` ให้อัตโนมัติ: รัน migration เองและสร้างบัญชีเดโมให้เลย
+
+- User: `test@test.com`
+- Password: `admin123`
+
+ถ้าไม่มี `STRIPE_SECRET_KEY` หน้า `/pricing` จะแสดงแผนตัวอย่างและปุ่มเช็กเอาต์จะแจ้งว่ายังไม่ได้ตั้งค่า Stripe
+และถ้าไม่มี `AUTH_SECRET` ระบบจะใช้คีย์สำหรับดีเวลอปเมนต์พร้อมคำเตือน (อย่าใช้ค่านี้ในโปรดักชัน)
 
 This will create the following user and team:
 

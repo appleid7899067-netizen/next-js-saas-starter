@@ -7,9 +7,20 @@ import {
   updateTeamSubscription
 } from '@/lib/db/queries';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil'
-});
+export const isStripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+
+if (!isStripeConfigured) {
+  console.warn(
+    '[stripe] STRIPE_SECRET_KEY is not set — the pricing page renders placeholder plans and checkout is disabled.'
+  );
+}
+
+export const stripe = new Stripe(
+  process.env.STRIPE_SECRET_KEY ?? 'sk_test_not_configured',
+  {
+    apiVersion: '2025-04-30.basil'
+  }
+);
 
 export async function createCheckoutSession({
   team,
@@ -18,6 +29,12 @@ export async function createCheckoutSession({
   team: Team | null;
   priceId: string;
 }) {
+  if (!isStripeConfigured) {
+    throw new Error(
+      'Stripe is not configured: set STRIPE_SECRET_KEY to enable checkout.'
+    );
+  }
+
   const user = await getUser();
 
   if (!team || !user) {
@@ -147,6 +164,10 @@ export async function handleSubscriptionChange(
 }
 
 export async function getStripePrices() {
+  if (!isStripeConfigured) {
+    return [];
+  }
+
   const prices = await stripe.prices.list({
     expand: ['data.product'],
     active: true,
@@ -165,6 +186,10 @@ export async function getStripePrices() {
 }
 
 export async function getStripeProducts() {
+  if (!isStripeConfigured) {
+    return [];
+  }
+
   const products = await stripe.products.list({
     active: true,
     expand: ['data.default_price']
